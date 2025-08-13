@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Google Drive Audio Player</title>
+<title>Google Drive Opus Player</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -57,11 +57,15 @@
   #playlist li:hover {
     background: #eee;
   }
+  #message {
+    color: red;
+    margin-top: 10px;
+  }
 </style>
 </head>
 <body>
 
-<h2>Google Drive Audio Player</h2>
+<h2>Google Drive Opus Player</h2>
 
 <div class="player">
   <audio id="audio" controls style="width: 100%;">
@@ -75,39 +79,50 @@
   </div>
 
   <ul id="playlist"></ul>
+  <div id="message"></div>
 </div>
 
 <script>
-  // ====== 🔹 PUT YOUR INFO HERE 🔹 ======
-  const API_KEY = "AIzaSyDQBvV0YV5xeBgNP7_7aKARPEgrrhNSEJ0"; // <-- Your API key
-  const FOLDER_ID = "https://drive.google.com/drive/folders/1aMMQao5WjQYZKZc1yiSWLoEEzSDp0Huj?usp=sharing";    // <-- Your Google Drive Folder ID
-  // ======================================
+  // ====== 🔹 YOUR INFO 🔹 ======
+  const API_KEY = "AIzaSyDQBvV0YV5xeBgNP7_7aKARPEgrrhNSEJ0";
+  const FOLDER_ID = "1aMMQao5WjQYZKZc1yiSWLoEEzSDp0Huj";
+  // ============================
 
   const audio = document.getElementById("audio");
   const playPauseBtn = document.getElementById("playPause");
   const prevBtn = document.getElementById("prev");
   const nextBtn = document.getElementById("next");
   const playlistElement = document.getElementById("playlist");
+  const message = document.getElementById("message");
 
   let playlist = [];
   let currentIndex = 0;
 
   async function loadPlaylist() {
-    const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+(mimeType='audio/ogg' or mimeType='audio/opus')&key=${API_KEY}&fields=files(id,name,mimeType)`;
-    const res = await fetch(url);
-    const data = await res.json();
-  
-    playlist = data.files.map(file => ({
-      name: file.name,
-      url: `https://docs.google.com/uc?export=download&id=${file.id}`
-    }));
+    message.textContent = "Loading playlist...";
+    try {
+      const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+(mimeType='audio/ogg' or mimeType='audio/opus')&key=${API_KEY}&fields=files(id,name,mimeType)`;
+      const res = await fetch(url);
+      const data = await res.json();
 
-    renderPlaylist();
-    if (playlist.length > 0) {
+      if (!data.files || data.files.length === 0) {
+        message.textContent = "No audio files found in the folder.";
+        return;
+      }
+
+      playlist = data.files.map(file => ({
+        name: file.name,
+        url: `https://docs.google.com/uc?export=download&id=${file.id}`
+      }));
+
+      renderPlaylist();
       loadTrack(0);
+      message.textContent = "";
+    } catch (err) {
+      console.error(err);
+      message.textContent = "Error loading playlist. Check API key and folder permissions.";
     }
-}
-
+  }
 
   function renderPlaylist() {
     playlistElement.innerHTML = "";
@@ -174,3 +189,4 @@
 
 </body>
 </html>
+
