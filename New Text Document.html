@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Drive Audio Player</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  .player {
+    background: white;
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    max-width: 400px;
+    width: 100%;
+  }
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  button {
+    background: #0078d4;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  button:hover {
+    background: #005ea2;
+  }
+  #playlist {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  #playlist li {
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  #playlist li.active {
+    background: #0078d4;
+    color: white;
+  }
+  #playlist li:hover {
+    background: #eee;
+  }
+</style>
+</head>
+<body>
+
+<h2>Google Drive Audio Player</h2>
+
+<div class="player">
+  <audio id="audio" controls style="width: 100%;">
+    Your browser does not support the audio element.
+  </audio>
+  
+  <div class="controls">
+    <button id="prev">⏮ Prev</button>
+    <button id="playPause">▶ Play</button>
+    <button id="next">Next ⏭</button>
+  </div>
+
+  <ul id="playlist"></ul>
+</div>
+
+<script>
+  // ====== 🔹 PUT YOUR INFO HERE 🔹 ======
+  const API_KEY = "AIzaSyDQBvV0YV5xeBgNP7_7aKARPEgrrhNSEJ0"; // <-- Your API key
+  const FOLDER_ID = "https://drive.google.com/drive/folders/1aMMQao5WjQYZKZc1yiSWLoEEzSDp0Huj?usp=sharing";    // <-- Your Google Drive Folder ID
+  // ======================================
+
+  const audio = document.getElementById("audio");
+  const playPauseBtn = document.getElementById("playPause");
+  const prevBtn = document.getElementById("prev");
+  const nextBtn = document.getElementById("next");
+  const playlistElement = document.getElementById("playlist");
+
+  let playlist = [];
+  let currentIndex = 0;
+
+  async function loadPlaylist() {
+    const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+(mimeType='audio/ogg' or mimeType='audio/opus')&key=${API_KEY}&fields=files(id,name,mimeType)`;
+    const res = await fetch(url);
+    const data = await res.json();
+  
+    playlist = data.files.map(file => ({
+      name: file.name,
+      url: `https://docs.google.com/uc?export=download&id=${file.id}`
+    }));
+
+    renderPlaylist();
+    if (playlist.length > 0) {
+      loadTrack(0);
+    }
+}
+
+
+  function renderPlaylist() {
+    playlistElement.innerHTML = "";
+    playlist.forEach((track, index) => {
+      const li = document.createElement("li");
+      li.textContent = track.name;
+      li.addEventListener("click", () => {
+        loadTrack(index);
+        audio.play();
+        playPauseBtn.textContent = "⏸ Pause";
+      });
+      playlistElement.appendChild(li);
+    });
+    updateActiveTrack();
+  }
+
+  function loadTrack(index) {
+    currentIndex = index;
+    audio.src = playlist[index].url;
+    updateActiveTrack();
+  }
+
+  function updateActiveTrack() {
+    [...playlistElement.children].forEach((li, idx) => {
+      li.classList.toggle("active", idx === currentIndex);
+    });
+  }
+
+  playPauseBtn.addEventListener("click", () => {
+    if (audio.paused) {
+      audio.play();
+      playPauseBtn.textContent = "⏸ Pause";
+    } else {
+      audio.pause();
+      playPauseBtn.textContent = "▶ Play";
+    }
+  });
+
+  prevBtn.addEventListener("click", () => {
+    if (currentIndex > 0) {
+      loadTrack(currentIndex - 1);
+      audio.play();
+      playPauseBtn.textContent = "⏸ Pause";
+    }
+  });
+
+  nextBtn.addEventListener("click", () => {
+    if (currentIndex < playlist.length - 1) {
+      loadTrack(currentIndex + 1);
+      audio.play();
+      playPauseBtn.textContent = "⏸ Pause";
+    }
+  });
+
+  audio.addEventListener("ended", () => {
+    if (currentIndex < playlist.length - 1) {
+      loadTrack(currentIndex + 1);
+      audio.play();
+    }
+  });
+
+  loadPlaylist();
+</script>
+
+</body>
+</html>
